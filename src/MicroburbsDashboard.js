@@ -4,6 +4,7 @@ import PropertyListings from "./PropertyListings"; // new import
 import SuburbSummary from "./SuburbSummary";
 import RiskFactors from "./RiskFactors";
 import MarketSights from "./MarketSights";
+import Schools from "./Schools";
 
 const MicroburbsDashboard = () => {
   const [tab, setTab] = useState("properties");
@@ -11,6 +12,7 @@ const MicroburbsDashboard = () => {
   const [summaryData, setSummaryData] = useState([]);
   const [riskData, setRiskData] = useState([]);
   const [sightData, setSightData] = useState([]);
+  const [schoolData, setSchoolData] = useState([]);
   const [suburb, setSuburb] = useState("Belmont North");
   const [error, setError] = useState("");
 
@@ -75,7 +77,7 @@ const MicroburbsDashboard = () => {
     }
   };
 
- const fetchSights = async () => {
+  const fetchSights = async () => {
   try {
     const res = await axios.get(
       `/report_generator/api/suburb/market?suburb=${encodeURIComponent(suburb)}`,
@@ -96,7 +98,30 @@ const MicroburbsDashboard = () => {
     console.error(err);
     setError("Failed to fetch market data.");
   }
-};
+  };
+
+  const fetchSchool = async () => {
+  try {
+    const res = await axios.get(
+      `/report_generator/api/suburb/schools?suburb=${encodeURIComponent(suburb)}`,
+      { headers: { Authorization: "Bearer test", "Content-Type": "application/json" } }
+    );
+
+    let parsedData =
+      typeof res.data === "string"
+        ? JSON.parse(res.data.replace(/\bNaN\b/g, "null"))
+        : res.data;
+
+    // Flatten results if nested array
+    const flatData = (parsedData.results || []).flat();
+
+    setSchoolData(flatData);
+    setError(flatData.length === 0 ? "No school data available." : "");
+  } catch (err) {
+    console.error(err);
+    setError("Failed to fetch school data.");
+  }
+  };
 
   const handleTabSwitch = (newTab) => {
     setTab(newTab);
@@ -104,6 +129,7 @@ const MicroburbsDashboard = () => {
     else if (newTab === "summary") fetchSummary();
     else if (newTab === "risk") fetchRisk();
     else if (newTab === "sights") fetchSights();
+    else if (newTab === "school") fetchSchool();
   };
 
   return (
@@ -155,6 +181,20 @@ const MicroburbsDashboard = () => {
           Properties
         </button>
         <button
+          onClick={() => handleTabSwitch("school")}
+          style={{
+            padding: "10px 20px",
+            borderRadius: "8px",
+            border: "none",
+            backgroundColor: tab === "school" ? "#0088FE" : "#ccc",
+            color: "#fff",
+            cursor: "pointer",
+            fontWeight: "bold",
+          }}
+        >
+          Schools
+        </button>
+        <button
           onClick={() => handleTabSwitch("risk")}
           style={{
             padding: "10px 20px",
@@ -190,6 +230,7 @@ const MicroburbsDashboard = () => {
       {tab === "summary" && <SuburbSummary summaryData={summaryData} suburb={suburb} />}
       {tab === "risk" && <RiskFactors riskData={riskData} suburb={suburb} />}
       {tab === "sights" && <MarketSights sightData={sightData} suburb={suburb} />}
+      {tab === "school" && <Schools schoolData={schoolData} suburb={suburb} />}
     </div>
   );
 };
